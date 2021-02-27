@@ -1,5 +1,5 @@
 class Message:
-    version = "1.0"  # 클래스 속성, 모든 인스턴스가 공유하는 attribute
+    version = "version 1.0"  # 클래스 속성, 모든 인스턴스가 공유하는 attribute
 
     def __init__(self, content=""):  # __init__ magic method. 생성자. 인스턴스별로 다른 속성들을 정의하는게 보편적인 use case
         self.content = content
@@ -7,7 +7,7 @@ class Message:
     def __str__(self):  # 인스턴스를 그냥 호출했을 때 콘솔에서 보일 내용을 정의함.
         return f'message content : {self.content}'
 
-    def __del__(self):
+    def __del__(self): # 해당 객체의 reference count가 0이되면 알아서 garbage collector에 의해 __del__이 호출됨. 뭐 커스텀해서 써도 되고
         print("this message will be deleted from memory")
         del self
 
@@ -26,6 +26,7 @@ class Message:
 if __name__ == '__main__':
     msg = Message("안녕하세요")
     print(msg) # message content : 안녕하세요
+    print(msg.version)
     targets = ['kim', 'lee', 'park']
     msg.send(targets)
 
@@ -34,6 +35,7 @@ if __name__ == '__main__':
 
     '''
     message content : 안녕하세요
+    version 1.0
     send msg successfully target : kim
     send msg successfully target : lee
     send msg successfully target : park
