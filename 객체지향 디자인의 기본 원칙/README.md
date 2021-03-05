@@ -168,3 +168,29 @@ const sequelize = new Sequelize(
   development
 ); //객체들로 인자를 주는 형태?
 ```
+
+자바에서의 의존성 주입 및 제어의 반전 예시
+
+before
+```java
+public class TextEditor {
+
+    private SpellChecker checker;
+
+    public TextEditor() {
+        this.checker = new SpellChecker();
+    }
+}
+```
+
+after
+```java
+public class TextEditor {
+
+    private IocSpellChecker checker;
+
+    public TextEditor(IocSpellChecker checker) {
+        this.checker = checker;
+    }
+}
+```
