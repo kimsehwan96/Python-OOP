@@ -14,8 +14,7 @@
     - 기존 클래스를 변경하지 않기 때문에 문제가 발생할 가능성이 낮다.
     - 기존 버전과의 호환성 유지가 수월하다.
     
-
-## 제어 반전 원칙
+## 제어 반전 원칙(IoC)
 제어 반전 원칙이란 상위 모듈은 하위 모듈에 의존적이지 않아야 한다는 원칙이다.  
 가능한 모두 추상화에 의존해야 한다. 추상화가 세부 사항에 의존하는 상황은 바람직하지 않다.
 
@@ -47,25 +46,27 @@ IoC/DI 라고도 부르나 보다. (Inversion of Control / Dependency Injection)
 즉 객체간의 강한 결합을 깨주는 역할을 한다고 보면 되겠다.
 
 before
-```python3
+```python
 import os
 
 class ApiClient:
 
     def __init__(self):
-        self.api_key = os.getenv('API_KEY')  # 의존 : 강한 결
+        self.api_key = os.getenv('API_KEY')  # 의존 : 강한 결합
         self.timeout = os.getenv('TIMEOUT')  # 의존
         # 설명하자면.. 이 클래스의 속성을 이렇게 단순히 설정하게 되면
-        # 의존성이 강해진다고 이야기 하는 것 같다. 복잡성도 늘어나구
+        # 의존성이 강해진다고 이야기 하는 것 같다. 
+        # 인스턴스화 할 때 따로 인자로 주어서 속성을 정의 할 수 없으니까 (추후에 속성을 접근해서 뭐 수정은 가능하겠지만)
+        # 그렇지 아니하고, 인스턴스화 할 때 생성자를 통해 옵션으로 받을 수 있게 리팩토링 해야겠지?
 
 class Service:
 
     def __init__(self):
-        self.api_client = ApiClient()  # 의존
+        self.api_client = ApiClient()  # 의존성
 
 
 def main() -> None:
-    service = Service()  # <-- dependency
+    service = Service()  # 의존성이 생겼다 !
     ...
 
 
@@ -75,7 +76,7 @@ if __name__ == '__main__':
 
 after
 
-```python3
+```python
 import os
 
 class ApiClient:
@@ -88,7 +89,7 @@ class ApiClient:
 class Service:
 
     def __init__(self, api_client: ApiClient):
-        self.api_client = api_client  # 역시나 의존성 주
+        self.api_client = api_client  # 역시나 의존성 주입
 
 
 def main(service: Service):  
@@ -112,7 +113,7 @@ if __name__ == '__main__':
 
 아래 코드는 `Django`에서 발췌
 
-```python3
+```python
 # settings.py
 CACHES = {
     'default': {
@@ -126,9 +127,9 @@ CACHES = {
 }
 ```
 
-```python3
+```python
 class FooView(APIView):
-    # The "injected" dependencies:
+    # 주입된 의존성들
     permission_classes = (IsAuthenticated, )
     throttle_classes = (ScopedRateThrottle, )
     parser_classes = (parsers.FormParser, parsers.JSONParser, parsers.MultiPartParser)
@@ -145,5 +146,25 @@ class FooView(APIView):
 > concept. [...] Dependency injection means giving an object
 > its instance variables. [...].
 
+
+> 의존성 주입은 5센트짜리 컨셉으로 25달러(무려 500배)의 효과를 발휘 할 수 있는 컨셉이다.
+> 의존성 주입은 인스턴스의 생성당시 인자로 객체를 제공하는것을 의미한다.
+
 - 간단히 정리하자면, 의존성 주입이라는거는 인스턴스화 할때 클래스의 생성자나 기타 메서드에 `object`를 인자로 주는것을 의미한다.
 - 최근 사이드 프로젝트에서 `Sequelize`를 사용하면서 인스턴스화 할 때 객체를 인자로 주었었는데, 이게 바로 생성자를 통한 의존성 주입에 해당되는거겠지...
+
+파이썬은 아니지만 `Sequelize` 의존성 주입 예시
+
+```js
+const Sequelize = require('sequelize');
+const env = process.env.NODE_ENV || 'development';
+const {development, production, test} = require('../config/config');
+const db = {};
+
+const sequelize = new Sequelize(
+  development.database,
+  development.username,
+  development.password,
+  development
+); //객체들로 인자를 주는 형태?
+```
