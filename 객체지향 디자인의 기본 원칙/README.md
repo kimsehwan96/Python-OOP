@@ -194,3 +194,98 @@ public class TextEditor {
     }
 }
 ```
+
+## 인터페이스 분리 원칙
+
+인터페이스 분리의 원칙(The interface Segregation Principle)이란 클라이언트는 불필요한 인터페이스에 의존하지 않아야 한다는 원칙이다.
+
+이 원칙은 효율적인 인터페이스 작성을 유도한다. 개발자는 반드시 해당 기능과 관련 있는 메서드만을 작성해야 한다. 해당 인터페이스와
+상관없는 메서드를 포함하는 인터페이스를 구현하는 모든 구현체 클래스는 필요없는 메서드까지 구현해야 하니까..
+
+예를들어 `Pizza`인터페이스에는 `add_chicken()`과 같은 메서드가 필요하지 않다.
+`Pizza` 인터페이스를 구현하는 `Veg Pizza` 클래스에 이런 메서드를 강요하면 안되지 않겠어?
+
+인터페이스 분리 원칙의 장점은 다음과 같다.
+- 인터페이스에 꼭 필요한 메서드만 포함하는 가벼운 인터페이스를 작성할 수 있다.
+- 인터페이스에 불필요한 메서드가 포함되는 것을 방지한다.
+
+**인터페이스 분리의 원칙을 위배한 코드**
+
+```python3
+import abc
+
+
+class Shape(metaclass=abc.ABCMeta):
+    """A demo shape class"""
+
+    @abc.abstractmethod
+    def draw_circle(self):
+        """Draw a circle"""
+        raise NotImplemented
+
+    @abc.abstractmethod
+    def draw_square(self):
+        """ Draw a square"""
+        raise NotImplemented
+
+
+class Circle(Shape):
+    """A demo circle class"""
+
+    def draw_circle(self):
+        """
+        원을 그리는 메서드
+        :param  None
+        :return: None
+        """
+        print("원 그리기 !")
+
+    def draw_square(self):
+        """
+        사각형을 그리는 메서드 사용하지 않음.
+        """
+        pass
+
+
+if __name__ == '__main__':
+    circle = Circle()
+    circle.draw_circle()
+
+```
+
+위 코드의 문제점 :
+- `shape`라는 인터페이스에, `draw_circle`, `draw_square`등 추상적이지 아니한 너무 많은 메서드를 추가함
+- 따라서 구현체 클래스에서 저 놈들을 쓸데없이 다 구현해야 함
+
+**리팩토링된 코드**
+
+```pythn3
+import abc
+
+
+class Shape(metaclass=abc.ABCMeta):
+    """A demo shape class"""
+
+    def draw(self):
+        """Draw a shape"""
+        raise NotImplemented
+
+
+class Circle(Shape):
+    """A demo circle class"""
+
+    def draw(self):
+        """Draw a circle"""
+        pass
+
+
+class Square(Shape):
+    """A demo square class"""
+
+    def draw(self):
+        """Draw a square"""
+        pass
+
+```
+
+이렇게 각 구현체 클래스에서 자신의 특성에 맞는 로직을 따로 짜도록 인터페이스 클래스는 최대한 추상화해서 필요한 메서드만 작성해주어야 한다!
