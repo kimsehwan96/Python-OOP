@@ -265,7 +265,8 @@ import abc
 
 class Shape(metaclass=abc.ABCMeta):
     """A demo shape class"""
-
+    
+    @abc.abstractmethod
     def draw(self):
         """Draw a shape"""
         raise NotImplemented
