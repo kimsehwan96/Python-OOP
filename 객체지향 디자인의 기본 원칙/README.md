@@ -259,7 +259,7 @@ if __name__ == '__main__':
 
 **리팩토링된 코드**
 
-```pythn3
+```python3
 import abc
 
 
