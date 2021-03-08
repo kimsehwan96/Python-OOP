@@ -355,19 +355,19 @@ class Square(Shape):
 
 ```python3
 def read_localfile(file):
-    """Read file"""
+    """파일을 읽는 함수"""
 
     return open(file, "r").read()
 
 
 def number_of_words(content):
-    """Count number of words in a file"""
+    """파일에 있는 단어의 개수"""
 
     return len(content.split())
 
 
 def count_word_occurrences(word, content):
-    """Count number of word occurrences in a file"""
+    """해당 파일에 얼마나 자주 word가 등장하는지 카운트하는 함수"""
 
     counter = 0
     for e in content.split():
@@ -377,7 +377,7 @@ def count_word_occurrences(word, content):
 
 
 def percentage_of_word(word, content):
-    """Calculate ratio of number of word occurrences to number of all words in a text"""
+    """전체 단어들 중 word에 해당하는 단어가 얼마의 비율로 나타나는지 계산하는 함수(퍼센티지 계산)"""
 
     total_words = number_of_words(content)
     word_occurrences = count_word_occurrences(word, content)
@@ -385,8 +385,7 @@ def percentage_of_word(word, content):
 
 
 def percentage_of_word_in_localfile(word, file):
-    """Calculate ratio of number of word occurrences to number
-       of all words in a text file"""
+    """텍스트 파일에 있는 단어들 중 word에 해당하는 단어가 얼마의 비율로 나타는지 계산하는 함수"""
 
     content = read_localfile(file)
     return percentage_of_word(word, content)
