@@ -290,3 +290,107 @@ class Square(Shape):
 ```
 
 이렇게 각 구현체 클래스에서 자신의 특성에 맞는 로직을 따로 짜도록 인터페이스 클래스는 최대한 추상화해서 필요한 메서드만 작성해주어야 한다!
+
+
+## 단일책임의 원칙
+
+단일 책임 원칙(The Single Responsibility Principle)이란 클래스는 하나의 책임만을 가져야 한다는 원칙이다.
+
+클래스를 구현할 때 한 가지 기능에만 중점을 두어야 한다. 두 가지 이상의 기능이 필요하다면 클래스를 나눠야 한다.
+이 원칙에서는 클래스는 기능으로 인해 변경된다. 특정 기능의 작동 방식이 변경돼 클래스를 수정하는 것은 허용되지만 두 가지 이상의 이유(두가지 기능 변경)
+때문에 클래스를 수정해야 한다면 클래스는 분할돼야 한다.
+
+단일 책임 원칙의 장점은 다음과 같다.
+
+- 어떤 기능을 수정할 때 특정 클래스만 변경된다.
+- 한 개의 클래스에 여러 기능이 있는 경우, 종속된 클래스도 기본 클래스의 역할을 완전히 치환하 수 있어야 한다는 원칙이다.
+
+생각해보면 디자인 패턴에서 제시하는 여러 패턴들은 단일책임 원칙을 매우 잘 지키고 있다고 생각하면 되는데,
+
+대표적으로 생성자 패턴에서의 팩토리패턴을 생각해보자.
+
+팩토리 패턴이라는건, 객체를 찍어낼(인스턴를 만들어낼)팩토리 클래스와 실제로 객체를 찍어낼 틀(클래스)가 각자의 기능이 분리되어있는 형태다.
+
+그래서 유지보수도 쉬워지기도 하는거지..
+
+단일 책임 기능의 원칙을 위반하고, 하나의 클래스에 너무 많은 기능을 떄려박으면, `God Class`라고 부르는 정말 모든걸 다하는 신의 클래스를 만들게 된다!
+
+### 주의점 !
+
+몇몇 사람들은 이 단일책임의 원칙이 오직 객체지향 프로그래밍 패러다임에서만 적용된다고 오해 하기도 하는데,
+이 단일책임 원칙은 모든 소프트웨어 개발 패러다임에서 적용된다.
+
+그러니까 함수형 프로그래밍을 하고 있을 지라도 단일 책임 원칙은 꼭 잘 지키라는 의미다!
+
+나 같은 초짜 개발자들이 대표적으로 하는 실수가 이 단일책임 원칙을 위배하는것!
+
+아래와 같은 코드를 생각해보자
+
+```python3
+ def percentage_of_word(search, file):
+    search = search.lower()
+    content = open(file, "r").read()
+    words = content.split()
+    number_of_words = len(words)
+    occurrences = 0
+    for word in words:
+        if word.lower() == search:
+            occurrences += 1
+    return occurrences/number_of_words
+```
+
+위 코드는 인자로 주어진 search 스트링(단어)이 file 이라는 인자로 주어진 파일이 갖고있는 단어중에서
+얼마나 많이 겹치는지 퍼센티지를 계산하는 함수이다.
+
+겉으로 보기엔 하나의 기능만 한다고 생각 할 수도 있지만
+
+1. 파일을 열고
+2. 단어의 개수를 새고
+3. 얼마나 자주 나왔는지 카운트하고
+4. 퍼센티지를 계산하는
+
+이렇게 여러 기능을 벌써 하고 있는것이다.
+
+위 코드는 아래와 같이 리팩토링이 가능하다.
+
+```python3
+def read_localfile(file):
+    """Read file"""
+
+    return open(file, "r").read()
+
+
+def number_of_words(content):
+    """Count number of words in a file"""
+
+    return len(content.split())
+
+
+def count_word_occurrences(word, content):
+    """Count number of word occurrences in a file"""
+
+    counter = 0
+    for e in content.split():
+        if word.lower() == e.lower():
+            counter += 1
+    return counter
+
+
+def percentage_of_word(word, content):
+    """Calculate ratio of number of word occurrences to number of all words in a text"""
+
+    total_words = number_of_words(content)
+    word_occurrences = count_word_occurrences(word, content)
+    return word_occurrences/total_words
+
+
+def percentage_of_word_in_localfile(word, file):
+    """Calculate ratio of number of word occurrences to number
+       of all words in a text file"""
+
+    content = read_localfile(file)
+    return percentage_of_word(word, content)
+```
+
+분리된 각 함수는 오직 하나의 기능만을 충실하게 수행하도록 변경되었다 !
+
