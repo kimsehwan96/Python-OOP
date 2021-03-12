@@ -393,3 +393,85 @@ def percentage_of_word_in_localfile(word, file):
 
 분리된 각 함수는 오직 하나의 기능만을 충실하게 수행하도록 변경되었다 !
 
+## 치환 원칙
+
+치환 원칙(The Substitution Principle)이란 상속받는 클래스는 기본 클래스의 역할을 완전히 치환 할 수 있어야 한다는 원칙이다.
+말 그대로 파생된 클래스는 기본 클래스를 완전히 확장해야 한다는 의미다.
+
+코드 수정 또는 추가 없이도 파생된 클래스는 기본 클래스를 대체 할 수 있어야 한다.
+
+### 치환 원을 위배한 코드
+
+```python3
+class Calculator():
+    def calculate(self, a, b): # returns a number
+        return a * b
+
+class DividerCalculator(Calculator):
+    def calculate(self, a, b): # returns a number or raises an Error
+        return a / b           
+
+calculation_results = [
+    Calculator().calculate(3, 4),
+    Calculator().calculate(5, 7),
+    DividerCalculator().calculate(3, 4),
+    DividerCalculator().calculate(5, 0) # 0 will cause an Error
+]
+
+print(calculation_results)
+```
+
+출력
+
+```console
+ZeroDivisionError: division by zero
+```
+위 코드는 치환 원칙을 위배한 코드이다. 
+
+모든 `Calculator`의 서브 클래스들은 `calculation`이라는 숫자를 리턴하는 메서드를 구현해야 한다.
+
+위 코드는
+
+1. 클래스의 계층 구조를 수정하거나
+2. 모든 `calculation` 메서드를 `try/except` 구문 안에서 호출
+
+위 두가지를 하지 않는 이상 버그를 고칠 수 없다.
+
+`DividerCalculator` 클래스는 `Calculator` 클래스와 이러한 부분에서 다르다.
+
+- **두 값을 곱한것** 은 항상 숫자형을 리턴한다.
+- **두 값을 나눈것** 은 에러를 발생 시킬 수 있음 (ZeroDivisionError)
+
+위 결과는 리턴형의 타입이 다르기 때문에, 인터페이스도 다르다고 할 수 있다.
+곱하기와 나누기는 절대로 같은것이 아니다(아까 위에서 예기한 예외가 발생하기도 하고, 정수만을 인자로 받는다고 할 때 곱하기는 정수형을 리턴하지만, 나누기는 실수형을 리턴한다 !) . 그러니까 이렇게 클래스 및 메서드를 상속받아 구현하는게 아니라...
+다른 것을 통해서 파생되어야 한다는 이야기다!
+
+### 또 다른 치환 원칙을 위배한 그지같은 코드들을 소개한다.
+
+```python3
+class Line(Shape):
+    def calculate_surface_area(self):
+        return -1 # Line이라는건 면적을 가질 수 없다 !
+    
+
+class Manager(Employee):
+    def desk_id(self):
+        return "" # 매니저는 보통 desk에서 일하지 않고 보통 미팅룸에서 일한다
+    
+
+class CompletedTask(Task):
+    def complete(self):
+        raise Exception("Cannot complete a completed task")
+        # ??????????????????
+```
+
+치환 원칙을 위배하는 코드는 보통 다음과 같은 상황에서 나옵니다.
+T 클래스로부터 S 클래스를 상속받습니다. S와 T클래스는 서로 관련이 있어 보이지만, 
+하나, 혹은 그 이상의 기능적인 인터페이스(메서드)가 다를 때 발생합니다.
+
+이러한 문제를 해결하기 위해서는 클래스 계층에서의 추상화 정도를 증가시키거나, 감소시키는 방법으로 해결합니다.
+
+![image1](https://i.stack.imgur.com/ilxzO.jpg)
+
+- 치환 원칙을 위배하면 발생하는 이슈를 보여주는 그림
+
