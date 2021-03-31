@@ -233,3 +233,60 @@ private으로 쓰라고 만든것이 아니다.
 그러니까 위 예제처럼 쓰면 파이써닉한 코드와는 거리가 멀어지는 것.
 
 따라서 private의 개념은 언더바 하나를 사용해서 코드를 작성하는 습관을 들이도록 하자!
+
+## 프로퍼티
+
+객체에 값을 저장해야 할 경우 어트리뷰트를 사용 할 수 있다. 때로는 객체의 상태나 다른 속성의 값을
+기반으로 어떤 계산을 하려고 할 때도 있다. 이런 경우 대부분 프로퍼티를 사용하는 것이 좋은 선택이다.
+
+프로퍼티는 객체의 어떤 속성에 대해 접근을 제어하려는 경우 사용한다. 이렇게 하는것도 파이써닉 한거다!
+
+자바나 다른 프로그래밍 언어에서는 접근 메서드 (게터/세터)를 만들지만, 파이썬에서는 프로퍼티를 쓸 것
+
+사용자가 등록한 정보에 잘못된 정보가 입력되지 않게 보호하려고 한다고 생각하자.
+아래 코드는 프로퍼티를 사용해 접근을 제한하고, 유효성을 체크하는 파이썬 코드다!
+
+```python3
+import re
+
+EMAIL_FORMAT = re.compile(r"[^@]+@[^@]+[^@]+")
+
+
+def is_valid_email(potentially_valid_email: str):
+    return re.match(EMAIL_FORMAT, potentially_valid_email) is not None
+
+
+class User:
+    def __init__(self, username):
+        self.username = username
+        self._email = None
+
+    @property
+    def email(self):
+        return self._email
+
+    @email.setter
+    def email(self, new_email):
+        if not is_valid_email(new_email):
+            raise ValueError("유효한 이메일이 아닙니다.")
+        self._email = new_email
+
+
+if __name__ == '__main__':
+    u1 = User('kim')
+    # u1.email = 'kim@'  # ValueError
+    u1.email = 'kim@kim.com'
+    print(u1.email)
+
+```
+
+여기서 주의할점
+
+1. 나는 `@property.setter` 라고 실수했었는데, 그게 아니라 `@property`로 정의한 속성을
+`setter`앞에 붙여주어야 한다. `@email.setter` 와 같이 말이다.
+
+2. 대부분의 경우에는 일반 속성을 사용해도 무방하다. 다만 속성의 값을 통해 연산하거나, 유성 체크를 할 경우에 프로퍼티로
+만들어서 사용하는게 효과적이다!
+   
+또한 위 예제에서 착안 할 수 있는점은 한 메서드에서 한 가지 이상의 일을 하지 말라는 것.
+무언가를 할당하고, 유효성 체크를 하고 싶다면 두개 이상의 문장(statement)로 나눠라!
