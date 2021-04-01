@@ -463,4 +463,73 @@ output:
 
 따라서 이터러블하게 사용이 가능한 것이다.
 
+## 시퀀스 만들기
+
+객체에 `__iter__` 메서드를 정의하지 않았지만, 반복하기를 원하는 경우도  있다.
+`iter()`함수는 객체에 `__iter__` 메서드가 정의되어있지 않으면 `__getitem__` 메서드를 찾고 
+없으면 `TypeError`를 발생시킨다.
+
+시퀀스는 `__len__`과  `__getitem__`을 구현하고, 첫 번째 인덱스 0부터 시작하여 포함된  요소를
+한번에 하나씩 차례로 가져올 수  있어야 한다. 즉 `__getitem__`을 올바르게 구현하여 이러한 인덱싱이
+가능하도록 주의를 기울여야 한다.
+
+우리가 바로 직전에서 사용했던 예제는 메모리를 적게 사용한다는 장점이 있다. (제네레이터로 필요할때 만들어 냈으니까.)
+즉 한 번에 하나의 날짜만 보관하고 한 번에 하나의 날짜를 생성하는 법을 알고 있었다.
+
+하지만 n번째 요소를 접근하고 싶을 때, 도달할 때 까지 n번 반복한다는 단점이 있다. (그니까 한마디로 연결리스트와 배열의 차이랄까)
+
+이는 CS에서의 전형적인 메모리와 CPU사이의 트레이드 오프다.
+
+이터러블을 사용하면 메모리는 적게 사용하지만, n번째 요소를 얻기 위한 시간복잡도는 O(n)이다.
+
+하지만 시퀀스로 구현한다면 더 많은 메모리가 사용되지만, 특정 요소를 얻기 위한 인덱싱의 시간 복접도는 O(1)이다.
+
+```python3
+from datetime import timedelta, date
+from typing import List
+
+class DateRangeSequence:
+    def __init__(self, start_date, end_date):
+        self.start_date = start_date
+        self.end_date = end_date
+        self._range = self._create_range()
+
+    def _create_range(self) -> List[date]:
+        days = []
+        current_day = self.start_date
+        while current_day < self.end_date:
+            days.append(current_day)
+            current_day += timedelta(days=1)
+        return days
+
+    def __getitem__(self, day_no):
+        return self._range[day_no]
+
+    def  __len__(self):
+        return len(self._range)
+
+
+if __name__ == '__main__':
+    s1 = DateRangeSequence(date(2021, 3, 25), date(2021, 4, 1))
+
+    for day in s1:
+        print(day)
+
+    """
+    output:
+    2021-03-25
+    2021-03-26
+    2021-03-27
+    2021-03-28
+    2021-03-29
+    2021-03-30
+    2021-03-31
+    """
+
+    print(s1[0]) # 2021-03-25
+    print(s1[3]) # 2021-03-28
+    print(s1[-1]) # 2021-03-31
+
+```
+
 
