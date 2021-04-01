@@ -290,3 +290,177 @@ if __name__ == '__main__':
    
 또한 위 예제에서 착안 할 수 있는점은 한 메서드에서 한 가지 이상의 일을 하지 말라는 것.
 무언가를 할당하고, 유효성 체크를 하고 싶다면 두개 이상의 문장(statement)로 나눠라!
+
+## 이터러블 객체
+
+파이썬에는 기본적으로 반복 가능한 객체가 있다. 예를 들어 리스트, 튜플, 세트 및 사전은 원하는 구조의 데이터를
+보유할 수 있을 뿐 아니라 for 루프를 통해 값을 반복적으로 가져올 수 있다.
+
+이러한 내장 반복형 객체만 for 루프에서 사용 가능한 것은 아니다. 반복을 위해 정의한 로직을 사용해
+자체 이터러블을 만들 수 있다. 엄밀히 말하면 이터러블은 `__iter__`매직 메서드를 구현한 객체, 이터레이터는
+`__next__` 매직 메서드를 구현한 객체를 말한다.
+
+이런 객체를 만들기 위해 매직메서드를 사용할 것이다.
+
+파이썬의 반복은 이터러블 프로토콜이라는 자체 프로토콜을 사용해 동작한다. for e in myobject: 형태로
+객체를 반복할 수 있는지 확인하기 위해 파이썬은 고수준에서 다음 두가지를 차례로 검사한다.
+
+- 객체가 `__next__`나 `__iter__` 이터레이터 메서드 중 하나를 포함하는가
+- 객체가 시퀀스이고 `__len__`과 `__getitem__`을 모두 가졌는지 여부.
+
+### 이터러블 객체 만들기
+
+객체를 반복하려고 하면 파이썬은 해당 객체의 `iter()` 함수를 호출한다.
+이 함수가 처음으로 하는 것은 `__iter__`메서드가 있는지를 확인하는 것이다.
+
+다음은 일정 기간의 날짜를 하루간격으로 반복하는 객체의 코드이다.
+
+```python3
+from datetime import timedelta, date
+
+class DateRangeIterable:
+    """
+    자체 이터레이터 메서드를 가지고 있는 이터러블 객체
+    """
+
+    def __init__(self, start_date, end_date):
+        self.start_date = start_date
+        self.end_date = end_date
+        self._present_day = start_date
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._present_day >= self.end_date:
+            raise StopIteration
+        today = self._present_day
+        self._present_day += timedelta(days=1)
+        return today
+
+
+if __name__ == '__main__':
+    r = DateRangeIterable(date(2021, 3, 25), date(2021, 4, 1))
+
+    for day in r:
+        print(day)
+
+    for day in r: # 두번째 루프는 동작하지 않는 상태!
+        print(day)
+
+
+
+"""
+output:
+2021-03-25
+2021-03-26
+2021-03-27
+2021-03-28
+2021-03-29
+2021-03-30
+2021-03-31
+"""
+
+
+```
+
+for 루프는 앞서 만든 객체를 사용해 새로운 반복을 시작한다. 이제 파이썬은 `iter()` 함수를 호출할 것이고, 이 함수는
+`__iter__` 매직 메서드를 호출할 것이다. `__iter__` 메서드는 self를 반환하고 있으므로, 객체 자신이 이터러블임을 나타내고 있다.
+
+따라서 루프의 각 단계마다 자신의 `next()`함수를 호출하고, 이 함수는 다시 `__next__` 메서드에게 위임한다.
+
+이 메서드는 요소를 어떻게 생산하고 하나씩 반환할 것인지 결정한다. 더이상 반환할 것이 없을 경우
+
+`StopIteration` 예외를 발생시켜주어야 한다. for 루프는 결국 StopIteration 예외가 발생할 때 까지 `next()`를 호출하는 것과 같다 !
+
+이 예제에서의 문제는 첫번째 루프에서는 동작을 잘 하지만, 두번째 루프에서는 동작하지 않는다는 점이다.
+
+위 예제에서는 `__iter__` 매직 메서드가 자기 자신을 반환했기 때문이다. 따라서 `__iter__`가 호출될 때 마다 새로운 인스턴스를 만드는것도
+
+그렇게 끔찍한 해결법은 아니지만. `__iter__`에서 제너레이터(이터레이터 객체)를 사용하는 방법이 제일 깔끔하다.
+
+```python3
+from datetime import timedelta, date
+
+
+class DateRangeContainerIterable:
+    def __init__(self, start_date, end_date):
+        self.start_date = start_date
+        self.end_date = end_date
+
+    def __iter__(self):
+        current_day = self.start_date
+        while current_day < self.end_date:
+            yield current_day
+            current_day += timedelta(days=1)
+
+
+if __name__ == '__main__':
+    r = DateRangeContainerIterable(date(2021, 3, 25), date(2021, 4, 1))
+
+    for day in r:
+        print(day)
+
+    for day in r:  # 두번째 루프또한 잘 동작한다.
+        print(day)
+
+
+"""
+ouput:
+2021-03-25
+2021-03-26
+2021-03-27
+2021-03-28
+2021-03-29
+2021-03-30
+2021-03-31
+2021-03-25
+2021-03-26
+2021-03-27
+2021-03-28
+2021-03-29
+2021-03-30
+2021-03-31
+"""
+```
+
+### 제너레이터에 대해서 잠깐 알아보고 가자.
+
+제너레이터는 이터레이터를 생성해주는 함수이다. 이터레이터는 클래스에 위에서 본 각종 매직 메서드를 구현해야 하지만
+제너레이터는 함수 안에서 `yield`라는 키워드만 사용하면 끝이다. 그래서 이터레이터보다 훨씬 간단하고 쉽다.
+
+```python3
+def gen():
+    yield 0
+    print('0을 발생시킴')
+    yield 1
+    print('1을 발생시킴')
+    yield 2
+    print('2을 발생시킴')
+
+
+if __name__ == '__main__':
+    for i in gen():
+        print(i)
+
+"""
+output:
+0
+0을 발생시킴
+1
+1을 발생시킴
+2
+2을 발생시킴
+"""
+```
+
+위 예제를 보고 알 수 있는 점은 yield가 호출될 때 yield 키워드 뒤에있는 값을 함수 외부로 전달한다.
+전달한 이후 다시 함수 자신의 로직으로 돌아온다.
+
+따라서 0 이라는 결과가 `print(i)`에 의해 출력 된 이후에, `print('0을 발생시킴')`과 같은 나머지 함수 로직을 탄다는 점이다.
+
+그리고 더이상 yield로 값을 반환하지 못할 경우 `StopIteration` 예외를 발생시킨다.
+
+따라서 이터러블하게 사용이 가능한 것이다.
+
+
