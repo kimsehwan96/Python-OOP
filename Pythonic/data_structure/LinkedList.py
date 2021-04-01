@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from .node import SingleNode
+from node import SingleNode
 from typing import Any
 
 
@@ -20,3 +20,6 @@ class LinkedList(metaclass=ABCMeta):
     @abstractmethod
     def cur_value(self) -> Any:
         raise NotImplementedError
+
+    def __len__(self):
+        return self._len
