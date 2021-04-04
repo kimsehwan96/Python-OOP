@@ -105,3 +105,176 @@ API를 디자인할 때 예상되는 입력, 출력 및 부작용을 문서화�
 
 더 작은 함수를 생성하여 해결할 수도 있지만 데코래이터를 사용하는것이 흥미로운 대안이 될 수 있다.
 
+## 올바른 수준의 추상화 단계에서의 예외처
+
+예외는 오직 한가지 일을 하는 함수의 한 부분이어야 한다. 함수가 처리하는 예외는 캡슐화된 로직과 같아야 함.
+
+아래 예제는 서로 다른 수준의 추상화를 혼합하는 예제. 애플리케이션에서 디코딩한 데이터를 외부 컴포넌트에 전달하는 객체를 상상해보자.
+
+`deliver_event`메서드를 중점으로 봐보자
+
+```python3
+from logging import (
+    Logger,
+    Formatter,
+    StreamHandler,
+    DEBUG
+)
+import time
+
+## 로거 설정
+logger = Logger('내 로거')
+logger.setLevel(DEBUG)  # 로깅 레벨 설정
+
+console = StreamHandler()  # 현재 콘솔에 대한 스트림 핸들러
+console.setLevel(DEBUG)  # 현재 콘솔 로깅을 디버그 레벨로 설정(출력)
+
+formatter = Formatter('%(asctime)s: %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')  # 로깅 메시지 포메터
+
+console.setFormatter(formatter)  # 포메터 설정
+
+logger.addHandler(console)  # 내 로거에 콘솔 핸들러 등록
+
+
+## 로거 설정 완료
+
+class DataTransport:
+    """다른 레벨에사 예외처리 하는 객체의 예"""
+
+    retry_threshold: int = 5
+    retry_n_times: int = 3
+
+    def __init__(self, connector):
+        self._connector = connector
+        self.connection = None
+
+    def deliver_event(self, event):
+        try:
+            self.connect()
+            data = event.decode()
+            self.send(data)
+        except ConnectionError as e:
+            logger.info('연결 실패 : %s', e)
+            raise  # 로직 예외발생시켜서 중단
+        except ValueError as e:
+            logger.error('%r 잘못된 데이터 포함: %s', event, e)
+            raise
+
+    def connect(self):
+        for _ in range(self.retry_n_times):
+            try:
+                self.connection = self._connector.connect()
+            except ConnectionError as e:
+                logger.info(
+                    '%s: 새로운 연결 시도 %is',
+                    e,
+                    self.retry_threshold
+                )
+                time.sleep(self.retry_threshold)
+            else:
+                return self.connection
+        raise ConnectionError(
+            f'{self.retry_n_times} 번째 재시도 연결 실패'
+        )
+
+    def send(self, data):
+        return self.connection.send(data)
+
+
+```
+
+ValueError와 ConnectionError는 무슨 관계일까? 사실 아무 관계가 없다. 이렇게 매우 다른 유형의
+오류를 살펴봄으로써 책임을 어떻게 분산해야 하는지에 대한 아이디어를 얻을 수 있다.
+
+ConnectionError는 connect 메서드 내에서 처리되어야 한다!
+
+connect 메서드가 연결과 관련된 행위의 책임을 갖고 있으니까!
+
+반대로 ValueError는 event의 decode메서드에 속한 에러이다. 이렇게 구현을 수정하면 deliver_event 메서드에서는 예외처리 할 필요가 없다.
+
+이전에 걱정했던 예외는 내부 메서드에서 처리하거나 의도적으로 예외가 발생하도록 내버려 둘 수 있다.
+
+따라서 `deliver_event` 메서드는 다른 메서드나 함수로 분리해야한다. 연결 관리는 작은 함수로 충분하다.
+
+개선된 코드는 다음과 같다.
+
+```python3
+from logging import (
+    Logger,
+    Formatter,
+    StreamHandler,
+    DEBUG
+)
+import time
+
+## 로거 설정
+logger = Logger('내 로거')
+logger.setLevel(DEBUG)  # 로깅 레벨 설정
+
+console = StreamHandler()  # 현재 콘솔에 대한 스트림 핸들러
+console.setLevel(DEBUG)  # 현재 콘솔 로깅을 디버그 레벨로 설정(출력)
+
+formatter = Formatter('%(asctime)s: %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')  # 로깅 메시지 포메터
+
+console.setFormatter(formatter)  # 포메터 설정
+
+logger.addHandler(console)  # 내 로거에 콘솔 핸들러 등록
+
+
+## 로거 설정 완료
+
+def connect_with_retry(connector, retry_n_times, retry_threshold=5):
+    """connector와 연결을 맺는다. <retry_n_times> 시도.
+
+    연결에 성공하면 connection 객체 반환
+    재시도까지 모두 실패하면 Connection Error 발생
+
+    :param connector: '.connect()'메서드를 가진 객체 
+    :param retry_n_times: 'connector.connect()'를 호출하는 횟수
+    :param retry_threshold: 재시도 사이의 간격
+    :return: connection 객체
+    """
+
+    for _ in range(retry_n_times):
+        try:
+            return connector.connect()
+        except ConnectionError as e:  # 리트라이 하기 위해 예외처리 + 로깅을 하는 부분
+            logger.info(
+                '%s: 새로운 견결 시도 %is', e, retry_threshold
+            )
+            time.sleep(retry_threshold)
+    # 위에서 Connetion Error를 5번까지 처리하고 로깅하다가.
+    # 이 아래 로직으로 넘어왔다는건 결국 연결에 실패했다는 의미. 예외를 발생시켜주면 된다.
+    exc = ConnectionError(f'{retry_n_times} 번재 째시도 연결 실패')
+    logger.exception(exc)
+    raise exc
+
+
+class DataTransport:
+    """다른 레벨에사 예외처리 하는 객체의 예"""
+
+    retry_threshold: int = 5
+    retry_n_times: int = 3
+
+    def __init__(self, connector):
+        self._connector = connector
+        self.connection = None
+
+    def deliver_event(self, event):
+        self.connection = connect_with_retry(
+            self._connector, self.retry_n_times, self.retry_threshold
+        )
+        self.send(event)
+
+    def send(self, event):
+        try:
+            return self.connection.send(event.decode())
+        except ValueError as e:
+            logger.error('%r 잘못된 데이터 포함: %s', event, e)
+            raise
+
+```
+
+각 메서드는 자신이 처리해야하는 예외만 처리한다. connect 메서드는 함수로 따로 분리하여서 예외처리를 한다.
+
+각 메서드는 훨씬 작아졌고, 읽기도 쉬워졌다. 이렇게 메서드를 따로 함수로 분리하는 접근 괜찮아 보인다.
