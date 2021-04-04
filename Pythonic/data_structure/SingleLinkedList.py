@@ -31,7 +31,6 @@ class SingLinkedList(LinkedList):
         # 아.. 전 노드를 어떻게 알아내지? 뇌정지상태임
         # 뇌사코드 작성중.. 내일 다시함
 
-
     @property
     def cur_value(self):
         return self._cursor.data
@@ -40,7 +39,8 @@ class SingLinkedList(LinkedList):
     def cur_value(self, data):
         self._cur_value = data
 
-if __name__ =='__main__':
+
+if __name__ == '__main__':
     l = SingLinkedList()
     l.append(1)
     l.append(2)

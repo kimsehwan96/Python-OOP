@@ -532,4 +532,61 @@ if __name__ == '__main__':
 
 ```
 
+## 호출형 객체
 
+함수처럼 동작하는 객체를 정의하면 매우 편리하다!. 가장 흔한 사례는 데코레이터를 만드는 것
+
+매직 메서드 `__call__`을 사용하면 객체를 일반 함수처럼 호출할 수 있다. 여기에 전달된 모든 파라미터는 `__call__`메서드에 그대로 전달된다.
+
+객체를 이렇게 사용하는 주된 이점은 객체에는 상태가 있기 때문에 함수 호출 사이에 정보를 저장할 수 있다는 점이다.
+
+파이썬은 `object(*args, **kwargs)`와 같은 구문을 `object.__call__(*args, **kwargs)`로 변환한다.
+
+이 메서드는 객체를 파라미터가 있는 함수처럼 사용하거나 정보를 기억하는 함수처럼 사용할때 매우 유용하다.
+
+다음은 입력된 파라미터와 동일한 값으로 몇번이나 호출되었는지를 반환하는 객체를 만들 때 `__call__` 매직메서드를 사용하는 예이다.
+
+```python3
+from collections import defaultdict
+
+
+class CallCount:
+    def __init__(self):
+        self._counts = defaultdict(int)
+
+    def __call__(self, argument):
+        self._counts[argument] += 1
+
+        return self._counts[argument]
+
+
+if __name__ == '__main__':
+    cc = CallCount()
+    print(cc(1))
+    print(cc(2))
+    print(cc(1))
+    print(cc(3))
+    print(cc('hello'))
+
+```
+
+> defaultdict? : defaultdict은 dict의 서브클래스이다. 작동하는 방식은 거의 동일하지만 defaultdict()은 인자로 주어진 객체의 기본값을
+> 딕셔너리값의 초깃값으로 지정할 수 있다.
+> 즉 defaultdict은 처음 키를 지정할 때 값을 주지 않으면 해당 키에 대한 디폴트 값을 지정하겠다는 의미임 !
+
+### 언제 활용할까??
+
+키의 개수를 세야하는 상황이나, 리스트나 셋의 항목을 정리해야 할 때 사용하면 좋은듯.
+
+```python3
+from collections import defaultdict
+
+string = 'dasfsaddafvdafv'
+
+string_dict = defaultdict(int)
+
+for v in string:
+    string_dict[v] += 1
+
+print(string_dict) # defaultdict(<class 'int'>, {'d': 4, 'a': 4, 's': 2, 'f': 3, 'v': 2})
+```
