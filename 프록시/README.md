@@ -28,3 +28,85 @@
 - 메모리 사용량이 높은 객체를 다루는 가벼운 핸들러 역할을 한다. 메인 객체가 반드시 필요한 상황에만 생성해야 하는 경우가 있다.
 객체의 크기가 크고 많은 리소스를 필요로 하기 때문
   
+
+배우와 에이전트 사이의 관계는 프록시 패턴과 비슷하다. 그래서 이 예시를 직접 구현해보면서 프록시 패턴을 이해해보자.
+
+영화 제작사가 배우를 모집할 때 보통 직접 배우에게 연락하지 않고 에이전트를 통해 모집한다. 배우의 스케줄과 상황에 따라 에이전트는 출연할 의사가 있는지 전달한다.
+제작사는 배우에게 직접 접근하지 않고 에이전트가 대신해 스케줄과 출연료를 조율하는 Proxy 역할을 한다.
+
+
+```python3
+class Actor:
+    def __init__(self) -> None:
+        self.is_busy = False
+
+    def occupied(self) -> None:
+        self.is_busy = True
+        print(type(self).__name__, "은/는 다른영화를 촬영중입니다.")
+
+    def available(self) -> None:
+        self.is_busy = False
+        print(type(self).__name__, "은/는 촬영 가능합니다.")
+
+    def get_status(self) -> bool:
+        return self.is_busy
+
+
+class Agent:
+    def __init__(self) -> None:
+        self.actor = Actor()
+        self.principal = None
+
+    def work(self):
+        if self.actor.get_status():
+            self.actor.occupied()
+        else:
+            self.actor.available()
+
+
+if __name__ == '__main__':
+    r = Agent()
+    r.work()
+    r.actor.occupied()
+    r.work()
+```
+
+프록시 패턴의 역할은 다음과 같다.
+
+- 특정 객체의 대리 객체를 제공해 접근을 제어한다.
+- 분산 구조를 지원하기 위한 레이어 또는 인터페이스를 제공한다.
+- 의도하지 않는 케이스로부터 객체를 보호한다.
+
+## 프록시 패턴의 UML 다이어그램
+
+![](proxy.png)
+
+위 UML 다이어그램에는 세 명의 참가자가 있다.
+
+- Proxy : 프록시가 실 객체에 접근 할 수 있는 레퍼런스를 유지한다. Subject와 동일한 구조를
+가지므로 Proxy는 실 객체를 대체할 수 있다. RealSubject의 생성과 소멸을 담당한다.
+  
+- Subject : RealSubject와 Proxy를 책임진다. Proxy와 RealSubject가 Subject 인터페이스를 구현하기 때문에 
+RealSbuject를 Proxy로 대체할 수 있다.
+  
+- RealSubject : Proxy가 대체하는 실 객체를 나타낸다.
+
+
+정리하자면 Subject라는 인터페이스(추상 클래스)를 구현한(상속한) Proxy와 RealSubject가 있고
+이 둘은 Subject라는 인터페이스를 구현한 것이므로 서로 대체 가능하다. 그래서 Proxy가 RealSubject마냥 행동 할 수 있는 것 !
+
+자료구조 관점에서 보기 !
+
+- Proxy : RealSubject 클래스의 접근을 제어하는 클래스다. 클라이언트의 요청을 처리하고 RealSubject를 생성 또는 소멸한다.
+- Subject/RealSubject : Subject는 RealSubject와 Proxy를 정의하는 인터페이스다. 
+- Client : 작업을 수행하기 위해 Proxy 클래스에 접근한다. Proxy 클래스는 대부적으로 RealSubject에 대한 접근을 제어하고 Client의 요청을 수행한다.
+
+개인적 의견 : 아직 잘 모르지만, 실 객체에 접근 할 때 Proxy를 거쳐야 접근 가능하도록 '강제'하는게 파이썬에서 가능할까?
+가능하다면 무언가 보안적 요소로 직접 객체에 접근하는 것을 허용하지 않고 무조건 클라이언트에 개방된 Proxy라는 일종의 '인터페이스'(추상 클래스 아님 주의)를 통해 접근하게 하고
+이 프록시가 인증이나 기타 요소를 차리 하도록 하면 좋지 않을까? 뭐 물론 데코레이터라는걸 이용해서 그런게 가능하긴 하지만 !
+
+아마 프록시를 그런 용도로 쓰는걸 못 본 이유는 강제할 수 없기 때문 아닐까? (그래서 데코레이터를 써서 인증처리를 하는거구?)
+
+## 프록시의 여러 유형들
+
+너는 내일 다시 작성한다
