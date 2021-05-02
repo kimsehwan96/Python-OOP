@@ -109,4 +109,157 @@ RealSbuject를 Proxy로 대체할 수 있다.
 
 ## 프록시의 여러 유형들
 
-너는 내일 다시 작성한다
+다양한 상황에서 프록시가 사용될 수 있다.
+
+프록시가 적용되는 방식에 따라 각 프록시를 가상 프록시, 원격 프록시, 보호 프록시, 스마트 프록시로 분류 할 수 있다.
+
+## 가상 프록시
+
+인스턴스화 하기엔 무거운 객체의 플레이스홀더 역할을 한다.
+
+예를들어서 불러오는데 오래 걸리는 객체가 있다고 해보자.
+
+이 객체를 굳이 사용하지 않는데 불러올 필요는 없지만, 사용자가 요청한다면 불러와야 한다.
+
+이 때 가상 프록시는 클라이언트가 객체를 처음 요청하거나, 접근했을 때 실 객체를 생성하도록 해주는 프록시이다.
+
+## 원격 프록시
+
+원격 프록시는 원격 서버나 다른 주소 공간에 존재하는 객체에 대한 로컬 인스턴스를 생성한다,.
+예를 들어 다수의 웹 서버와 데이터베이스 서버, 작업 서버, 캐시 서버등으로 구성된 애플리케이션 모니터링 시스템을 구성한다고 생각해보자.
+
+각 서버의 CPU와 디스크 사용량을 모니터링 하려면 모니터링 서버에서 각 서버의 실제 사용량 수치를 얻는 원격 명령을 수행해야 할 것이다. (tail -f /proc/cpuinfo 같은거..)
+
+이런 경우에 원격 객체를 로컬에서 제어 할 수 있는 원격 프록시 객체를 생성하면 유용하다.
+
+## 보호 프록시
+
+보호 프록시는 실 객체의 중요한 부분에 대한 접근을 제어한다.
+
+예를들어 웹 어플리케이션은 다양한 서비스를 조합해 기능을 제공하는데, 이런 구조에서 사용자의 인증과 허가를 담당하는 인증 서비스가 보호 프록시가 될  수 있겠다.
+
+(내 생각 : 보통 이런 기능 구현은 decorator로 인증여부를 체크하고, 권한이 있을 경우 실 코드 실행, 아닐경우 다른 미리 지정된 코드 실행 등으로 처리하는 듯
+이런 데코레이터를 통한 인증여부 체크도 보호 프록시라고 할 수 있을까?)
+
+## 스마트 프록시
+
+스마트 프록시는 사용자가 객체에 접근했을 때 추가적인 행동을 취한다. 예를 들어 상태를 중앙 서버에 저장하는 핵심 기능이 있는 서비스를 예로 들어보자.
+
+시스템의 여러 서비스가 동시에 이  기능을 호출하면 리소스 공유에 문제가 있을 수 있다.
+
+이럴 때 각 서비스가 기능을 '직접'호출하기 보다는 스마트 프록시를 통해 호출하고, 스마트 프록시는 자원의 `lock` 등을 체크하는 기능을 추가로 수행해 접근을 제어한다.
+
+## 프록시 패턴 예시 코드
+
+물품을 구매하는 과정을 간단하게 프록시 패턴으로 구현한 코드이다.
+
+여기서는 실제 민감한 메서드들의 접근을 제어하는 `보호 프록시`가 적용되었다고 생각하면 된다.
+
+실 객체를 찍어낼 클래스와, 프록시 클래스는 모두 동일한 인터페이스를 상속하여 구현하였다.
+
+```python3
+from abc import ABCMeta, abstractmethod
+
+
+class Payment(metaclass=ABCMeta):
+
+    @abstractmethod
+    def do_pay(self):
+        pass
+
+
+class Bank(Payment):
+
+    def __init__(self):
+        self.card = None
+        self.account = None
+
+    def __get_account(self):
+        """
+        카드 번호로부터 은행 계좌를 받아옴, 이 예제에서는 두개가 동일하다고 판단.
+        :return: 계좌 번호
+        """
+        self.account = self.card
+        return self.account
+
+    def __has_funds(self):
+        """
+        계좌에 충분한 금액이 있는지 확인하는 메서드, 테스트를 위해 금액 체크를 하지 않고 무조건 True 리턴
+        :return: True
+        """
+        print('Bank : 계좌에 충분한 금액이 있는지 확인 중', self.__get_account())
+        return True
+
+    def set_card(self, card):
+        """
+        카드 번호를 입력받아 카드 어트리뷰트에 설정
+        :param card: any
+        :return: None
+        """
+        self.card = card
+
+    def do_pay(self):
+        """
+        실제 결제를 하는 과정, __has_funds를 호출하여 체크하는 일종의 래핑된 메서드임.
+        :return: boolean
+        """
+        if self.__has_funds():
+            print('Bank: 금액 결제중..')
+            return True
+        else:
+            print('Bank: 계좌에 금액이 충분하지 않습니다.')
+            return False
+
+
+class DebitCard(Payment):
+    """
+    Bank 클래스의 프록시
+    실 객체의 민감한 메서드 (잔고 확인, 계좌번호를 받아오는 등)을 호출하지 않도록 보호한다.
+    상속받은 클래스인 Payment 클래스에는 Bank 클래스의 민감한 메서드들이 구현 되어 있지 않다.
+    또한 Bank 클래스와  DebitCard 클래스는 모두 Payment 클래스를 상속하였다. 따라서 공통 메서드(인터페이스)인  do_pay 메서드를 갖고있다.
+    이 프록시 클래스는 Bank 라는 실 객체를 생성하고, 실 객체의 do_pay 메서드를 호출함으로서 동작한다. 물론 메서드 호출 전에 셋업(카드번호)은 들어간다.
+    """
+
+    def __init__(self):
+        self.bank = Bank()
+
+    def do_pay(self):
+        card = input('Proxy : 카드 번호 입력하세요 : ')
+        self.bank.set_card(card)
+        return self.bank.do_pay()
+
+
+class Client:
+
+    def __init__(self):
+        print("clinet  : 물품 구매 중")
+        self.debit_card = DebitCard()  # 클라이언트는 프록시 객체에 접근한다.
+        self.is_purchased = None
+
+    def make_payment(self):
+        self.is_purchased = self.debit_card.do_pay()
+
+    def __del__(self):
+        if self.is_purchased:
+            print('client  : 구매 완료')
+        else:
+            print('client :  금액 부족')
+
+
+if __name__ ==  '__main__':
+    client =  Client()
+    client.make_payment()
+
+
+"""
+result:
+
+clinet  : 물품 구매 중
+Proxy : 카드 번호 입력하세요 : 1-3
+Bank : 계좌에 충분한 금액이 있는지 확인 중 1-3
+Bank: 금액 결제중..
+client  : 구매 완료
+
+"""
+```
+
